@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SWAN-ERP Final</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    /* CORE VARIABLES & THEMES (unchanged) */
+    :root {
+      --bg-main: #0f172a; --bg-soft: #1e293b; --border: #334155;
+      --accent: #3b82f6; --accent-soft: #60a5fa; --text: #f1f5f9;
+      --muted: #94a3b8; --danger: #ef4444; --warn: #f59e0b; --success: #22c55e;
+    }
+    body.theme-green { --accent: #22c55e; --accent-soft: #4ade80; }
+    body.theme-orange { --accent: #f97316; --accent-soft: #fb923c; }
+    body.theme-red { --accent: #ef4444; --accent-soft: #f87171; }
+
+    * { box-sizing: border-box; outline: none; }
+    html, body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-main); color: var(--text); height: 100%; overflow: hidden; }
+    
+    /* LAYOUT */
+    .app-shell { display: flex; flex-direction: column; height: 100vh; }
+    
+    /* TOP BAR */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 15px; height: 40px; background: var(--bg-soft); border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    .brand { font-weight: 800; letter-spacing: 1px; color: var(--accent-soft); }
+    
+    /* RIBBON NAV */
+    .ribbon { display: flex; gap: 5px; padding: 8px 10px; background: var(--bg-main); border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .ribbon-btn { 
+      padding: 8px 14px; background: var(--bg-soft); border: 1px solid var(--border); 
+      color: var(--muted); border-radius: 6px; cursor: pointer; font-size: 0.75rem; 
+      display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap; font-weight: 600; text-transform: uppercase;
+    }
+    .ribbon-btn:hover { border-color: var(--accent); color: var(--text); }
+    .ribbon-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .ribbon-sep { width: 1px; background: var(--border); margin: 0 5px; }
+
+    /* MAIN VIEW AREA */
+    .main-area { flex: 1; overflow: hidden; position: relative; padding: 10px; }
+    .view { display: none; flex-direction: column; height: 100%; animation: fadein 0.2s; }
+    .view.active { display: flex; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* COMMON UI ELEMENTS */
+    .panel { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .row { display: flex; gap: 10px; } .col { flex: 1; }
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 5px; }
+    .field label { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+    
+    input, select, textarea { 
+      background: #020617; border: 1px solid var(--border); color: var(--text); 
+      padding: 8px; border-radius: 4px; font-size: 0.9rem; width: 100%; 
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+
+    /* TABLES */
+    .table-container { flex: 1; overflow: hidden; border: 1px solid var(--border); border-radius: 6px; background: #020617; display: flex; flex-direction: column; }
+    .table-scroll { overflow-y: auto; flex: 1; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg-soft); color: var(--muted); position: sticky; top: 0; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .text-right { text-align: right; }
+    .text-danger { color: var(--danger) !important; }
+
+    /* BUTTONS */
+    .btn { padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-soft); color: var(--text); cursor: pointer; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+    .btn:hover { border-color: var(--accent); color: var(--accent-soft); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-soft); color: white; }
+    .btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
+    .btn-block { width: 100%; }
+    .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+
+    /* DASHBOARD GRID */
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .tile { background: var(--bg-soft); border: 1px solid var(--border); padding: 16px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .tile-head { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); }
+    .tile-val { font-size: 1.5rem; font-weight: 700; color: var(--accent-soft); }
+    .tile-sub { font-size: 0.7rem; color: var(--muted); }
+
+    .report-bar { background: var(--bg-soft); border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-top: auto; }
+    .report-controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+
+    /* POS SPECIFIC */
+    .pos-layout { display: grid; grid-template-columns: 280px 1fr 320px; gap: 10px; height: 100%; }
+    .pos-totals { margin-top: auto; border-top: 1px dashed var(--border); padding-top: 10px; }
+    .pos-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem; }
+    .grand-total { font-size: 1.6rem; font-weight: bold; color: var(--accent-soft); text-align: right; margin: 10px 0; }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+    .modal { background: var(--bg-main); width: 500px; max-width: 95vw; padding: 20px; border-radius: 8px; border: 1px solid var(--accent); display: flex; flex-direction: column; gap: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; color: var(--accent-soft); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+    /* PRINT HIDDEN */
+    #print-zone { display: none; }
+    @media print {
+      .app-shell, .modal-overlay { display: none !important; }
+      #print-zone { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: #fff; color: #000; padding: 10px; }
+      .print-header { text-align: center; margin-bottom: 20px; }
+      .print-header img { max-height: 60px; display:block; margin: 0 auto 6px; }
+      table.print-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      table.print-table th, table.print-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+    }
+
+    .hidden { display:none; }
+    .small-muted { font-size: 0.75rem; color: var(--muted); }
+  </style>
+</head>
+<body class="theme-default">
+<div class="app-shell">
+  
+  <header class="top-bar">
+    <div class="brand"><i class="fa fa-layer-group"></i> SWAN-ERP</div>
+    <div style="display:flex; gap:15px; align-items:center;">
+      <span id="clock" style="color:var(--muted); font-family:monospace;">00:00:00</span>
+      <select id="theme-selector" style="width:auto; padding:4px;" onchange="setTheme(this.value)">
+        <option value="">Default Blue</option>
+        <option value="theme-green">Forest Green</option>
+        <option value="theme-orange">Sunset Orange</option>
+        <option value="theme-red">Crimson Red</option>
+      </select>
+    </div>
+  </header>
+
+  <nav class="ribbon">
+    <button class="ribbon-btn active" onclick="nav('dashboard', event)"><i class="fa fa-chart-pie"></i> Dashboard</button>
+    <div class="ribbon-sep"></div>
+    <button class="ribbon-btn" onclick="nav('pos', event)"><i class="fa fa-cash-register"></i> Sale (POS)</button>
+    <button class="ribbon-btn" onclick="nav('inventory', event)"><i class="fa fa-boxes"></i> Inventory</button>
+    <button class="ribbon-btn" onclick="nav('purchase', event)"><i class="fa fa-cart-shopping"></i> Purchase</button>
+    <div class="ribbon-sep"></div>
+    <button class="ribbon-btn" onclick="nav('ledger', event)"><i class="fa fa-book"></i> Ledger</button>
+    <button class="ribbon-btn" onclick="nav('expenses', event)"><i class="fa fa-receipt"></i> Expenses</button>
+    <button class="ribbon-btn" onclick="nav('banking', event)"><i class="fa fa-university"></i> Banking</button>
+    <div class="ribbon-sep"></div>
+    <button class="ribbon-btn" onclick="nav('settings', event)"><i class="fa fa-cogs"></i> Settings</button>
+  </nav>
+
+  <main class="main-area">
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="view active">
+      <div class="dash-grid">
+        <div class="tile">
+          <span class="tile-head">Total Sales (Today)</span>
+          <span class="tile-val" id="d-total">0.00</span>
+          <span class="tile-sub">Cash + Credit + Online</span>
+        </div>
+        <div class="tile">
+          <span class="tile-head">Cash Sales</span>
+          <span class="tile-val" id="d-cash">0.00</span>
+        </div>
+        <div class="tile">
+          <span class="tile-head">Credit Sales / Outstanding</span>
+          <span class="tile-val" id="d-credit" style="color:var(--warn)">0.00</span>
+        </div>
+        <div class="tile">
+          <span class="tile-head">Online / Bank Sales</span>
+          <span class="tile-val" id="d-online">0.00</span>
+        </div>
+        <div class="tile">
+          <span class="tile-head">Est. Profit</span>
+          <span class="tile-val" id="d-profit" style="color:var(--success)">0.00</span>
+        </div>
+        <div class="tile" style="border-color:var(--danger)">
+          <span class="tile-head">Today Expense</span>
+          <span class="tile-val text-danger" id="d-exp">0.00</span>
+        </div>
+      </div>
+
+      <!-- REPORT BAR WITH VIEW + PRINT -->
+      <div class="report-bar">
+        <h3 style="color:var(--muted); margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:5px;">REPORTS & ACTIONS</h3>
+        <div class="report-controls">
+          <div class="field"><label>From</label><input type="date" id="rpt-start" style="width:140px"></div>
+          <div class="field"><label>To</label><input type="date" id="rpt-end" style="width:140px"></div>
+
+          <!-- SALE -->
+          <div class="field">
+            <label>Sale</label>
+            <div class="row">
+              <button class="btn btn-sm" onclick="viewReport('sale')"><i class="fa fa-eye"></i> View</button>
+              <button class="btn btn-sm" onclick="printReport('sale')"><i class="fa fa-print"></i> Print</button>
+            </div>
+          </div>
+
+          <!-- PROFIT -->
+          <div class="field">
+            <label>Profit</label>
+            <div class="row">
+              <button class="btn btn-sm" onclick="viewReport('profit')"><i class="fa fa-eye"></i> View</button>
+              <button class="btn btn-sm" onclick="printReport('profit')"><i class="fa fa-print"></i> Print</button>
+            </div>
+          </div>
+
+          <!-- EXPENSE -->
+          <div class="field">
+            <label>Expense</label>
+            <div class="row">
+              <button class="btn btn-sm" onclick="viewReport('expense')"><i class="fa fa-eye"></i> View</button>
+              <button class="btn btn-sm" onclick="printReport('expense')"><i class="fa fa-print"></i> Print</button>
+            </div>
+          </div>
+
+          <!-- STOCK -->
+          <div class="field">
+            <label>Stock</label>
+            <div class="row">
+              <button class="btn btn-sm" onclick="viewReport('stock')"><i class="fa fa-eye"></i> View</button>
+              <button class="btn btn-sm" onclick="printReport('stock')"><i class="fa fa-print"></i> Print</button>
+            </div>
+          </div>
+
+          <div style="flex:1"></div>
+
+          <!-- BILL BROWSER -->
+          <div class="field">
+            <label>Browse Bills</label>
+            <div class="row">
+              <button class="btn btn-sm" onclick="billPrev()"><i class="fa fa-chevron-left"></i></button>
+              <input id="bill-index" style="width:80px;text-align:center" readonly />
+              <button class="btn btn-sm" onclick="billNext()"><i class="fa fa-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <div class="row">
+              <button class="btn btn-sm" onclick="billPrintCurrent()"><i class="fa fa-print"></i> Reprint</button>
+              <button class="btn btn-sm" onclick="billEditCurrent()"><i class="fa fa-pen"></i> Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="billReturnCurrent()"><i class="fa fa-undo"></i> Return</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POS -->
+    <div id="pos" class="view">
+      <div class="pos-layout">
+        <!-- left -->
+        <div class="panel">
+          <div class="field">
+            <label>Customer</label>
+            <div class="row">
+              <select id="pos-cust"></select>
+              <button class="btn btn-primary" onclick="modal('m-cust')">+</button>
+            </div>
+          </div>
+          <div class="field"><label>Payment Mode</label>
+            <select id="pos-mode" onchange="toggleBank('pos-mode','pos-bank-row')">
+              <option value="Cash">Cash</option>
+              <option value="Credit">Credit</option>
+              <option value="Online">Online/Bank</option>
+            </select>
+          </div>
+          <div class="field hidden" id="pos-bank-row" style="display:none">
+            <label>Select Bank</label><select id="pos-bank"></select>
+          </div>
+          <div class="field"><label>Remarks</label><textarea id="pos-rem" rows="2"></textarea></div>
+          <div style="margin-top:auto"></div>
+          <div class="row">
+            <button class="btn col" onclick="holdBill()">HOLD (F6)</button>
+            <button class="btn col" onclick="recallBill()">RECALL (F7)</button>
+          </div>
+        </div>
+
+        <!-- center -->
+        <div class="panel">
+          <div class="field">
+            <label>Scan Barcode / Search Item</label>
+            <input id="pos-search" placeholder="Type item name or code..." oninput="filterPosList()" />
+          </div>
+          <div class="table-container">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Code</th><th>Name</th><th>Loc</th><th class="text-right">Cost</th><th class="text-right">Price</th><th class="text-right">Stock</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="pos-search-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Cart Items</label>
+          </div>
+          <div class="table-container">
+            <div class="table-scroll">
+              <table id="pos-table">
+                <thead><tr><th>Item</th><th>Unit</th><th>Qty</th><th class="text-right">Price</th><th class="text-right">Total</th><th></th></tr></thead>
+                <tbody id="pos-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- right -->
+        <div class="panel">
+          <div class="field"><label>Date</label><input type="date" id="pos-date"></div>
+          <div class="pos-totals">
+            <div class="pos-row"><span>Subtotal</span><span id="pos-sub">0.00</span></div>
+            <div class="pos-row"><span>Discount</span><input type="number" id="pos-disc" value="0" style="width:70px; text-align:right" oninput="calcPos()"></div>
+            <div class="pos-row"><span>Tax (%)</span><input type="number" id="pos-tax" value="0" style="width:70px; text-align:right" oninput="calcPos()"></div>
+            <div class="pos-row"><span>Service Chg</span><input type="number" id="pos-svc" value="0" style="width:70px; text-align:right" oninput="calcPos()"></div>
+            <div class="grand-total" id="pos-net">0.00</div>
+          </div>
+          <div class="field"><label>Tendered</label><input type="number" id="pos-tend" oninput="calcChange()"></div>
+          <div class="pos-row" style="font-size:1.1rem; font-weight:bold"><span>Change:</span><span id="pos-change">0.00</span></div>
+          
+          <button class="btn btn-primary btn-block" style="height:50px; margin-top:10px;" onclick="saveAndPrintPrompt()"><i class="fa fa-print"></i> PRINT / SAVE</button>
+          <button class="btn btn-danger btn-block" style="margin-top:5px;" onclick="clearPos()">CLEAR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="inventory" class="view">
+      <div class="row" style="margin-bottom:10px; justify-content:space-between">
+        <input id="inv-search" placeholder="Search items..." style="width:300px" onkeyup="renderInv()">
+        <button class="btn btn-primary" onclick="modal('m-item')"><i class="fa fa-plus"></i> Add Item</button>
+      </div>
+      <div class="table-container"><div class="table-scroll">
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th>Loc</th><th class="text-right">Cost</th><th class="text-right">Price</th><th>Base Unit</th><th class="text-right">Stock</th><th>Action</th></tr></thead>
+          <tbody id="inv-body"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- PURCHASE -->
+    <div id="purchase" class="view">
+      <div class="row" style="margin-bottom:10px;">
+        <div class="panel col">
+          <div class="field">
+            <label>Supplier</label>
+            <div class="row">
+              <select id="pur-sup"></select>
+              <button class="btn btn-primary" onclick="modal('m-sup')">+</button>
+            </div>
+          </div>
+          <div class="field"><label>Date</label><input type="date" id="pur-date"></div>
+        </div>
+        <div class="panel col">
+          <div class="field"><label>Search Item</label>
+            <input id="pur-search" placeholder="Type name/code" oninput="filterPurchaseList()">
+          </div>
+          <div class="table-container">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Code</th><th>Name</th><th class="text-right">Cost</th><th class="text-right">Stock</th><th></th></tr></thead>
+                <tbody id="pur-search-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="field"><label>Purchase Items</label></div>
+        <div class="table-container">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Item</th><th>Qty</th><th class="text-right">Cost</th><th class="text-right">Total</th><th></th></tr></thead>
+              <tbody id="pur-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="pos-row" style="margin-top:8px;"><span>Total</span><span id="pur-total">0.00</span></div>
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="savePurchase()"><i class="fa fa-save"></i> Save Purchase</button>
+      </div>
+    </div>
+
+    <!-- LEDGER -->
+    <div id="ledger" class="view">
+      <div class="row" style="height:100%; gap:20px;">
+        <div class="panel col">
+          <div class="row" style="align-items:center; border-bottom:1px solid var(--border); padding-bottom:5px;">
+            <strong style="color:var(--accent-soft)">CUSTOMERS</strong>
+            <input id="search-cust" placeholder="Search..." style="margin-left:auto; width:150px" onkeyup="renderLedgers()">
+          </div>
+
+          <!-- NEW: Customer Credit Report Controls -->
+          <div style="margin-top:10px; margin-bottom:10px; display:flex; gap:8px; align-items:flex-end;">
+            <div style="flex:1">
+              <label class="small-muted">Customer (creditors)</label>
+              <select id="led-credit-cust" style="width:100%"></select>
+            </div>
+            <div style="width:150px">
+              <label class="small-muted">From</label>
+              <input type="date" id="led-rpt-start">
+            </div>
+            <div style="width:150px">
+              <label class="small-muted">To</label>
+              <input type="date" id="led-rpt-end">
+            </div>
+            <div>
+              <button class="btn btn-sm btn-primary" style="height:36px" onclick="printCustomerCreditReport()"><i class="fa fa-print"></i> Print Credit Report</button>
+            </div>
+          </div>
+
+          <div class="table-container"><div class="table-scroll">
+            <table><thead><tr><th>Name</th><th class="text-right">Balance</th><th>Act</th></tr></thead><tbody id="led-cust"></tbody></table>
+          </div></div>
+        </div>
+        <div class="panel col">
+          <div class="row" style="align-items:center; border-bottom:1px solid var(--border); padding-bottom:5px;">
+            <strong style="color:var(--warn)">SUPPLIERS</strong>
+            <input id="search-sup" placeholder="Search..." style="margin-left:auto; width:150px" onkeyup="renderLedgers()">
+            <button class="btn btn-sm" onclick="modal('m-sup')">+</button>
+          </div>
+          <div class="table-container"><div class="table-scroll">
+            <table><thead><tr><th>Name</th><th class="text-right">Payable</th><th>Act</th></tr></thead><tbody id="led-sup"></tbody></table>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPENSES -->
+    <div id="expenses" class="view">
+      <div class="row" style="margin-bottom:10px; justify-content:space-between">
+        <h3>Expense Tracker</h3>
+        <button class="btn btn-primary" onclick="modal('m-exp')">Add Expense</button>
+      </div>
+      <div class="table-container"><div class="table-scroll">
+        <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="text-right">Amount</th></tr></thead><tbody id="exp-body"></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- BANKING -->
+    <div id="banking" class="view">
+      <div class="row" style="margin-bottom:10px; justify-content:space-between">
+        <h3>Banking & Accounts</h3>
+        <button class="btn btn-primary" onclick="modal('m-bank')">Add Bank</button>
+      </div>
+      <div class="table-container"><div class="table-scroll">
+        <table><thead><tr><th>Bank Name</th><th>Account No</th><th class="text-right">Balance</th></tr></thead><tbody id="bank-body"></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings" class="view">
+      <div class="row">
+        <div class="panel col" style="max-width:500px">
+          <h3>Company Info (For Bill)</h3>
+          <div class="field"><label>Company Name</label><input id="set-name"></div>
+          <div class="field"><label>Address / Phone</label><textarea id="set-addr" rows="3"></textarea></div>
+          <div class="field"><label>Logo URL (Optional)</label><input id="set-logo" placeholder="https://... or data:image/png;base64,..."></div>
+          <button class="btn btn-primary" onclick="saveSettings()">Save Info</button>
+        </div>
+        <div class="panel col" style="max-width:300px; border-color:var(--danger)">
+          <h3 class="text-danger">Danger Zone</h3>
+          <p>This will wipe all sales, items, and accounts.</p>
+          <button class="btn btn-danger" onclick="hardReset()">HARD RESET (Pass: 1234)</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- EXCEL STYLE SEARCH SOURCE -->
+<datalist id="dl-items"></datalist>
+
+<!-- ITEM MODAL -->
+<div class="modal-overlay" id="m-item"><div class="modal">
+  <div class="modal-head"><span>Item Details</span><button class="btn btn-danger" onclick="closeModal('m-item')">X</button></div>
+  <input type="hidden" id="mi-id">
+  <div class="row"><div class="field col"><label>Barcode</label><input id="mi-code"></div><div class="field col"><label>Name</label><input id="mi-name"></div></div>
+  <div class="row"><div class="field col"><label>Cost</label><input type="number" id="mi-cost"></div><div class="field col"><label>Price (Base)</label><input type="number" id="mi-price"></div></div>
+  <div class="row"><div class="field col"><label>Stock (Base)</label><input type="number" id="mi-stock"></div><div class="field col"><label>Low Alert</label><input type="number" id="mi-alert" value="5"></div></div>
+  <div class="field"><label>Location/Shelf</label><input id="mi-loc"></div>
+  <div style="border-top:1px solid var(--border); padding-top:5px; margin-top:5px;"><strong>Unit Conversion</strong></div>
+  <div class="row"><div class="field col"><label>Base Unit (e.g. Pcs)</label><input id="mi-u1" value="Pcs"></div><div class="field col"><label>Alt Unit (e.g. Box)</label><input id="mi-u2"></div></div>
+  <div class="field"><label>How many Base in Alt? (e.g. 12)</label><input type="number" id="mi-conv" value="1"></div>
+  <button class="btn btn-primary" onclick="saveItem()">Save Item</button>
+</div></div>
+
+<!-- CUSTOMER / SUPPLIER / BANK / EXPENSE / PAYMENT MODALS (unchanged core) -->
+<div class="modal-overlay" id="m-cust"><div class="modal">
+  <div class="modal-head"><span>New Customer</span><button class="btn btn-danger" onclick="closeModal('m-cust')">X</button></div>
+  <div class="field"><label>Name</label><input id="mc-name"></div><div class="field"><label>Phone</label><input id="mc-phone"></div>
+  <button class="btn btn-primary" onclick="saveContact('customers','mc')">Save</button>
+</div></div>
+
+<div class="modal-overlay" id="m-sup"><div class="modal">
+  <div class="modal-head"><span>New Supplier</span><button class="btn btn-danger" onclick="closeModal('m-sup')">X</button></div>
+  <div class="field"><label>Name</label><input id="ms-name"></div><div class="field"><label>Phone</label><input id="ms-phone"></div>
+  <button class="btn btn-primary" onclick="saveContact('suppliers','ms')">Save</button>
+</div></div>
+
+<div class="modal-overlay" id="m-bank"><div class="modal">
+  <div class="modal-head"><span>New Bank</span><button class="btn btn-danger" onclick="closeModal('m-bank')">X</button></div>
+  <div class="field"><label>Bank Name</label><input id="mb-name"></div><div class="field"><label>Acct No</label><input id="mb-acc"></div><div class="field"><label>Opening Bal</label><input type="number" id="mb-bal"></div>
+  <button class="btn btn-primary" onclick="saveBank()">Save</button>
+</div></div>
+
+<div class="modal-overlay" id="m-exp"><div class="modal">
+  <div class="modal-head"><span>New Expense</span><button class="btn btn-danger" onclick="closeModal('m-exp')">X</button></div>
+  <div class="field"><label>Category</label><select id="me-cat"><option>Food/Tea</option><option>Utilities</option><option>Rent</option><option>Wages</option><option>Other</option></select></div>
+  <div class="field"><label>Description</label><input id="me-desc"></div><div class="field"><label>Amount</label><input type="number" id="me-amt"></div>
+  <button class="btn btn-primary" onclick="saveExp()">Save</button>
+</div></div>
+
+<div class="modal-overlay" id="m-pay"><div class="modal">
+  <div class="modal-head"><span id="mp-title">Transaction</span><button class="btn btn-danger" onclick="closeModal('m-pay')">X</button></div>
+  <input type="hidden" id="mp-id"><input type="hidden" id="mp-type">
+  <h3 id="mp-name" style="text-align:center; color:var(--accent-soft)"></h3>
+  <div class="field"><label>Amount</label><input type="number" id="mp-amt"></div>
+  <div class="field"><label>Date</label><input type="date" id="mp-date"></div>
+  <button class="btn btn-primary" onclick="processPayment()">Confirm & Print</button>
+</div></div>
+
+<div id="print-zone"></div>
+
+<script>
+const DB_KEY = 'swan_erp_final';
+let db = {
+  info: { name: "Company Name", addr: "Address Here", logo: "" },
+  items: [],
+  customers: [{id:1, name:"Walk-in", phone:"", bal:0}],
+  suppliers: [],
+  sales: [],
+  expenses: [],
+  banks: [],
+  heldBills: [],
+  transactions: [] // stores payments and credit sale pointers
+};
+let cart = [];
+let purCart = [];
+let currentBillIndex = -1;
+
+/* INIT */
+window.onload = () => {
+  if(localStorage.getItem(DB_KEY)) db = JSON.parse(localStorage.getItem(DB_KEY));
+  setInterval(()=>document.getElementById('clock').innerText=new Date().toLocaleTimeString(),1000);
+  const today = new Date().toISOString().split('T')[0];
+  ['pos-date','rpt-start','rpt-end','mp-date','pur-date','led-rpt-start','led-rpt-end'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value=today;
+  });
+  updateUI();
+};
+function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(db)); updateUI(); }
+
+function nav(id, ev){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.ribbon-btn').forEach(b=>b.classList.remove('active'));
+  if(ev && ev.target) ev.target.classList.add('active');
+  if(id==='dashboard') calcDash();
+}
+
+function modal(id){ document.getElementById(id).style.display='flex'; }
+function closeModal(id){ document.getElementById(id).style.display='none'; }
+function setTheme(t){ document.body.className=t||'theme-default'; }
+function toggleBank(src,tgt){ document.getElementById(tgt).style.display = document.getElementById(src).value==='Online'?'block':'none'; }
+function num(id){ return parseFloat(document.getElementById(id).value)||0; }
+function val(id){ return document.getElementById(id).value; }
+
+/* DASHBOARD */
+function calcDash(){
+  const today=new Date().toISOString().split('T')[0];
+  let s=0,c=0,cr=0,online=0,p=0,e=0;
+  db.sales.filter(x=>x.date===today).forEach(x=>{
+    s+=x.net; p+=x.profit;
+    if(x.mode==='Cash') c+=x.net;
+    if(x.mode==='Credit') cr+=x.net;
+    if(x.mode==='Online') online+=x.net;
+  });
+  db.expenses.filter(x=>x.date===today).forEach(x=>e+=x.amt);
+  document.getElementById('d-total').innerText=s.toFixed(2);
+  document.getElementById('d-cash').innerText=c.toFixed(2);
+  document.getElementById('d-credit').innerText=cr.toFixed(2);
+  document.getElementById('d-online').innerText=online.toFixed(2);
+  document.getElementById('d-profit').innerText=p.toFixed(2);
+  document.getElementById('d-exp').innerText=e.toFixed(2);
+}
+
+/* STOCK VALUE */
+function calcStockValue(){ return db.items.reduce((a,i)=>a+(i.stock*i.cost),0).toFixed(2); }
+
+/* REPORT VIEW + PRINT */
+function buildReportHeader(){
+  const logoHTML = db.info.logo ? `<img src="${db.info.logo}" alt="logo">` : '';
+  const addrHTML = db.info.addr ? `<p style="margin:6px 0">${db.info.addr.replace('\\n','<br>')}</p>` : '';
+  return `<div class="print-header">${logoHTML}<h2>${db.info.name}</h2>${addrHTML}</div>`;
+}
+function buildReportHTML(type,d1,d2){
+  let h=buildReportHeader();
+  h+=`<h3 style="text-align:center; margin-bottom:6px">${type.toUpperCase()} REPORT</h3>`;
+  h+=`<p style="text-align:center">${d1} to ${d2}</p>`;
+  h+=`<table class="print-table"><thead>`;
+  if(type==='sale'){
+    h+=`<tr><th>Date</th><th>Inv#</th><th>Customer</th><th>Mode</th><th class="text-right">Amount</th></tr></thead><tbody>`;
+    let tot=0;
+    db.sales.filter(s=>s.date>=d1 && s.date<=d2).forEach(s=>{
+      const c=db.customers.find(c=>c.id==s.custId);
+      h+=`<tr><td>${s.date}</td><td>${s.id}</td><td>${c?c.name:'-'}</td><td>${s.mode}</td><td class="text-right">${s.net.toFixed(2)}</td></tr>`;
+      tot+=s.net;
+    });
+    h+=`</tbody></table><h3 style="text-align:right">Total: ${tot.toFixed(2)}</h3>`;
+  }else if(type==='profit'){
+    h+=`<tr><th>Date</th><th>Inv#</th><th class="text-right">Service</th><th class="text-right">Profit</th></tr></thead><tbody>`;
+    let tp=0;
+    db.sales.filter(s=>s.date>=d1 && s.date<=d2).forEach(s=>{
+      h+=`<tr><td>${s.date}</td><td>${s.id}</td><td class="text-right">${s.svc.toFixed(2)}</td><td class="text-right">${s.profit.toFixed(2)}</td></tr>`;
+      tp+=s.profit;
+    });
+    h+=`</tbody></table><h3 style="text-align:right">Total Profit: ${tp.toFixed(2)}</h3>`;
+  }else if(type==='expense'){
+    h+=`<tr><th>Date</th><th>Cat</th><th>Desc</th><th class="text-right">Amt</th></tr></thead><tbody>`;
+    let te=0;
+    db.expenses.filter(e=>e.date>=d1 && e.date<=d2).forEach(e=>{
+      h+=`<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.desc}</td><td class="text-right">${e.amt.toFixed(2)}</td></tr>`;
+      te+=e.amt;
+    });
+    h+=`</tbody></table><h3 style="text-align:right">Total Exp: ${te.toFixed(2)}</h3>`;
+  }else if(type==='stock'){
+    h+=`<tr><th>Item</th><th>Loc</th><th>Stock</th><th class="text-right">Cost</th><th class="text-right">Value</th></tr></thead><tbody>`;
+    let tv=0;
+    db.items.forEach(i=>{
+      const v=i.stock*i.cost; tv+=v;
+      h+=`<tr><td>${i.name}</td><td>${i.loc||'-'}</td><td>${i.stock}</td><td class="text-right">${i.cost.toFixed(2)}</td><td class="text-right">${v.toFixed(2)}</td></tr>`;
+    });
+    h+=`</tbody></table><h3 style="text-align:right">Total Val: ${tv.toFixed(2)}</h3>`;
+  }
+  return `<html><head><title>${type} report</title><style>body{font-family:Arial,sans-serif;color:#000} .print-header img{max-height:60px; display:block; margin:0 auto 6px}</style></head><body>${h}</body></html>`;
+}
+function viewReport(type){
+  const d1=val('rpt-start'), d2=val('rpt-end');
+  const html=buildReportHTML(type,d1,d2);
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+function printReport(type){
+  const d1=val('rpt-start'), d2=val('rpt-end');
+  const html=buildReportHTML(type,d1,d2);
+  document.getElementById('print-zone').innerHTML=html;
+  window.print();
+}
+
+/* POS EXCEL-LIKE SEARCH LIST */
+function filterPosList(){
+  const qRaw=val('pos-search')||'';
+  const q=qRaw.trim().toLowerCase();
+  const body=document.getElementById('pos-search-body');
+  if(!q){ body.innerHTML=''; return; }
+
+  // If barcode matches exactly -> auto-add
+  const byCode = db.items.find(i => (i.code||'').toLowerCase() === q);
+  if(byCode){
+    addItemToCart(byCode.id);
+    document.getElementById('pos-search').value='';
+    body.innerHTML='';
+    return;
+  }
+
+  // Otherwise show name/code matches (no auto-add)
+  const matches = db.items.filter(i => ( (i.name||'') + ' ' + (i.code||'') ).toLowerCase().includes(q) );
+  body.innerHTML = matches.map(i=>`
+    <tr>
+      <td>${i.code||''}</td>
+      <td>${i.name}</td>
+      <td>${i.loc||'-'}</td>
+      <td class="text-right">${(i.cost||0).toFixed(2)}</td>
+      <td class="text-right">${(i.price||0).toFixed(2)}</td>
+      <td class="text-right">${i.stock||0}</td>
+      <td><button class="btn btn-sm" onclick="addItemToCart(${i.id})">Add</button></td>
+    </tr>`).join('');
+}
+
+/* POS CART */
+function addItemToCart(id){
+  const i=db.items.find(x=>x.id==id);
+  if(!i) return;
+  const ex=cart.find(c=>c.id==i.id);
+  if(ex) ex.qty++;
+  else cart.push({
+    id:i.id,name:i.name,qty:1,price:i.price,cost:i.cost,
+    unit:'base',basePrice:i.price,baseCost:i.cost,conv:i.conv,u1:i.u1,u2:i.u2, loc: i.loc
+  });
+  renderCart();
+}
+function setUnit(idx,mode){
+  const c=cart[idx];
+  if(mode==='alt'){c.unit='alt';c.price=c.basePrice*c.conv;}
+  else{c.unit='base';c.price=c.basePrice;}
+  renderCart();
+}
+function renderCart(){
+  const tb=document.getElementById('pos-body');tb.innerHTML='';
+  let sub=0;
+  cart.forEach((c,idx)=>{
+    const unitSelect=c.u2? `
+      <select style="width:60px;padding:0;font-size:0.75rem" onchange="setUnit(${idx},this.value)">
+        <option value="base" ${c.unit==='base'?'selected':''}>${c.u1}</option>
+        <option value="alt" ${c.unit==='alt'?'selected':''}>${c.u2}</option>
+      </select>` : c.u1;
+    const total=c.qty*c.price; sub+=total;
+    tb.innerHTML+=`
+      <tr>
+        <td>
+          <div style="font-weight:600">${c.name}</div>
+          <div class="small-muted">Loc: ${c.loc||'-'}</div>
+        </td>
+        <td>${unitSelect}</td>
+        <td><input type="number" value="${c.qty}" style="width:50px" oninput="cart[${idx}].qty=parseFloat(this.value)||0;renderCart()"></td>
+        <td class="text-right"><input type="number" value="${c.price.toFixed(2)}" style="width:80px;text-align:right" oninput="updateCartPrice(${idx},this.value)"></td>
+        <td class="text-right">${total.toFixed(2)}</td>
+        <td><i class="fa fa-times text-danger" style="cursor:pointer" onclick="cart.splice(${idx},1);renderCart()"></i></td>
+      </tr>`;
+  });
+  document.getElementById('pos-sub').innerText=sub.toFixed(2);
+  calcPos();
+}
+function updateCartPrice(idx,val){ cart[idx].price=parseFloat(val)||0; renderCart(); }
+function calcPos(){
+  const sub=parseFloat(document.getElementById('pos-sub').innerText)||0;
+  const disc=num('pos-disc');
+  const taxP=num('pos-tax');
+  const svc=num('pos-svc');
+  const tax=(sub-disc)*(taxP/100);
+  const net=(sub-disc)+tax+svc;
+  document.getElementById('pos-net').innerText=net.toFixed(2);
+  calcChange();
+}
+function calcChange(){
+  const net=parseFloat(document.getElementById('pos-net').innerText)||0;
+  const tend=num('pos-tend');
+  document.getElementById('pos-change').innerText=(tend-net).toFixed(2);
+}
+function clearPos(){
+  cart=[];renderCart();
+  ['pos-disc','pos-tax','pos-svc','pos-tend'].forEach(i=>document.getElementById(i).value=0);
+}
+
+/* HOLD / RECALL (unchanged) */
+function holdBill(){
+  if(cart.length){
+    db.heldBills.push({cart:cart,d:num('pos-disc'),t:num('pos-tax'),s:num('pos-svc')});
+    clearPos();alert("Bill held");saveDB();
+  }
+}
+function recallBill(){
+  if(!db.heldBills.length){alert("No held bills");return;}
+  const b=db.heldBills.pop();
+  cart=b.cart;document.getElementById('pos-disc').value=b.d;document.getElementById('pos-tax').value=b.t;document.getElementById('pos-svc').value=b.s;
+  renderCart();saveDB();
+}
+
+/* SAVE vs PRINT PROMPT */
+function saveAndPrintPrompt(){
+  if(!cart.length){alert("Empty cart");return;}
+  const choice=prompt("1 = Save only, 2 = Save & Print","2");
+  if(choice==="1") checkout(false); else checkout(true);
+}
+function checkout(doPrint){
+  const sub=parseFloat(document.getElementById('pos-sub').innerText)||0;
+  const net=parseFloat(document.getElementById('pos-net').innerText)||0;
+  const custId=parseInt(val('pos-cust'))||1;
+  const mode=val('pos-mode');
+  if(mode==='Credit' && custId===1){alert("Credit only allowed to saved customers.");return;}
+  let cost=0;let low=[];
+  cart.forEach(c=>{
+    const item=db.items.find(i=>i.id==c.id);
+    const deduct=c.unit==='alt'?c.qty*c.conv:c.qty;
+    item.stock-=deduct;
+    cost+=deduct*item.cost;
+    if(item.stock<=item.alert)low.push(item.name);
+  });
+  const sale={
+    id: Date.now(),date:val('pos-date'),custId,
+    items:JSON.parse(JSON.stringify(cart)),
+    sub,disc:num('pos-disc'),
+    tax:(sub-num('pos-disc'))*(num('pos-tax')/100),
+    svc:num('pos-svc'),
+    net,profit:(net-((sub-num('pos-disc'))*(num('pos-tax')/100))-cost),
+    mode
+  };
+  // record transaction for credit sales
+  if(mode==='Credit'){
+    const c=db.customers.find(x=>x.id==custId);
+    if(c) c.bal+=net;
+    db.transactions.push({type:'sale', date: sale.date, party:'cust', partyId: custId, saleId: sale.id, amt: sale.net, items: sale.items});
+  }else if(mode==='Online'){
+    const b=db.banks.find(x=>x.name==val('pos-bank'));if(b)b.bal+=net;
+  }
+  db.sales.push(sale);saveDB();
+  if(doPrint) printBill(sale);
+  clearPos();
+  if(low.length)alert("Low stock: "+low.join(", "));
+}
+
+/* BILL PRINT / EDIT / RETURN */
+function printBill(s){
+  const c=db.customers.find(x=>x.id==s.custId)||{name:'Walk-in'};
+  let h=`<div class="print-header">`;
+  if(db.info.logo) h+=`<img src="${db.info.logo}" alt="logo">`;
+  h+=`<h3>${db.info.name}</h3><p>${db.info.addr.replace('\\n','<br>')}</p>
+  <p>Inv: ${s.id} | Date: ${s.date}</p><p>Cust: ${c.name}</p></div>
+  <table class="print-table"><thead><tr><th>Item</th><th>Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead><tbody>`;
+  s.items.forEach(i=>{
+    h+=`<tr><td>${i.name}${i.loc?`<div style="font-size:12px;color:#666">Loc: ${i.loc}</div>`:''}</td><td>${i.qty} ${i.unit==='alt'?i.u2:i.u1}</td><td class="text-right">${i.price.toFixed(2)}</td><td class="text-right">${(i.price*i.qty).toFixed(2)}</td></tr>`;
+  });
+  h+=`</tbody></table><div style="text-align:right;margin-top:10px;font-weight:bold">
+  <p>Subtotal: ${s.sub.toFixed(2)}</p>${s.disc>0?`<p>Disc: -${s.disc.toFixed(2)}</p>`:''}
+  ${s.tax>0?`<p>Tax: ${s.tax.toFixed(2)}</p>`:''}${s.svc>0?`<p>Svc: ${s.svc.toFixed(2)}</p>`:''}
+  <h3>NET TOTAL: ${s.net.toFixed(2)}</h3></div>`;
+  document.getElementById('print-zone').innerHTML=h;window.print();
+}
+
+/* BILL BROWSER */
+function updateBillIndexDisplay(){
+  if(db.sales.length===0){document.getElementById('bill-index').value="0 / 0";return;}
+  if(currentBillIndex<0) currentBillIndex=db.sales.length-1;
+  if(currentBillIndex>=db.sales.length) currentBillIndex=db.sales.length-1;
+  document.getElementById('bill-index').value=(currentBillIndex+1)+" / "+db.sales.length;
+}
+function billPrev(){ if(!db.sales.length)return; if(currentBillIndex<=0)currentBillIndex=0;else currentBillIndex--;updateBillIndexDisplay(); }
+function billNext(){ if(!db.sales.length)return; if(currentBillIndex>=db.sales.length-1)currentBillIndex=db.sales.length-1;else currentBillIndex++;updateBillIndexDisplay(); }
+function billPrintCurrent(){ if(db.sales.length===0)return; const s=db.sales[currentBillIndex]; printBill(s); }
+function billEditCurrent(){
+  if(db.sales.length===0)return;
+  const s=db.sales[currentBillIndex];
+  nav('pos', {target:document.querySelector('button[onclick*=\"pos\" ]')});
+  cart=JSON.parse(JSON.stringify(s.items));
+  document.getElementById('pos-disc').value=s.disc;
+  document.getElementById('pos-tax').value=(s.tax/(s.sub-s.disc))*100||0;
+  document.getElementById('pos-svc').value=s.svc;
+  document.getElementById('pos-date').value=s.date;
+  document.getElementById('pos-mode').value=s.mode;
+  document.getElementById('pos-cust').value=s.custId;
+  renderCart();
+}
+function billReturnCurrent(){
+  if(db.sales.length===0)return;
+  if(!confirm("Return this bill and restock items?"))return;
+  const s=db.sales[currentBillIndex];
+  s.items.forEach(i=>{
+    const item=db.items.find(x=>x.id==i.id);
+    const qty=i.unit==='alt'?i.qty*i.conv:i.qty;
+    item.stock+=qty;
+  });
+  if(s.mode==='Credit'){
+    const c=db.customers.find(x=>x.id==s.custId);if(c)c.bal-=s.net;
+  }else if(s.mode==='Online'){
+    const b=db.banks.find(x=>x.name==val('pos-bank')); if(b)b.bal-=s.net;
+  }
+  // remove corresponding transaction records if existed (optional)
+  db.transactions = db.transactions.filter(t => !(t.type==='sale' && t.saleId===s.id));
+  db.sales.splice(currentBillIndex,1);
+  currentBillIndex=db.sales.length-1;
+  saveDB();
+  alert("Bill returned and stock restored.");
+}
+
+/* INVENTORY */
+function saveItem(){
+  const id=val('mi-id');
+  const o={
+    id:id?parseInt(id):Date.now(),
+    code:val('mi-code'),
+    name:val('mi-name'),
+    cost:num('mi-cost'),
+    price:num('mi-price'),
+    stock:num('mi-stock'),
+    alert:num('mi-alert'),
+    loc:val('mi-loc'),
+    u1:val('mi-u1'),
+    u2:val('mi-u2'),
+    conv:num('mi-conv')||1
+  };
+  if(id){const idx=db.items.findIndex(x=>x.id==o.id);db.items[idx]=o;}else db.items.push(o);
+  saveDB();closeModal('m-item');
+}
+function renderInv(){
+  const f=val('inv-search').toLowerCase();
+  document.getElementById('inv-body').innerHTML=db.items.filter(i=>(i.name+i.code).toLowerCase().includes(f)).map(i=>`
+    <tr style="${i.stock<=i.alert?'color:var(--danger)':''}">
+      <td>${i.code}</td><td>${i.name}</td><td>${i.loc}</td>
+      <td class="text-right">${i.cost.toFixed(2)}</td>
+      <td class="text-right">${i.price.toFixed(2)}</td>
+      <td>${i.u1}</td><td class="text-right">${i.stock}</td>
+      <td><button class="btn btn-sm" onclick="editItem(${i.id})">Edit</button></td>
+    </tr>`).join('');
+}
+function editItem(id){
+  const i=db.items.find(x=>x.id==id);
+  document.getElementById('mi-id').value=i.id;
+  ['code','name','cost','price','stock','alert','loc','u1','u2','conv'].forEach(k=>{
+    const el=document.getElementById('mi-'+k); if(el) el.value=i[k];
+  });
+  modal('m-item');
+}
+
+/* PURCHASE */
+function filterPurchaseList(){
+  const q=val('pur-search').toLowerCase();
+  const body=document.getElementById('pur-search-body');
+  body.innerHTML=db.items.filter(i=>(i.name+i.code).toLowerCase().includes(q)).map(i=>`
+    <tr><td>${i.code}</td><td>${i.name}</td><td class="text-right">${i.cost.toFixed(2)}</td><td class="text-right">${i.stock}</td>
+    <td><button class="btn btn-sm" onclick="addPurchaseItem(${i.id})">Add</button></td></tr>`).join('');
+}
+function addPurchaseItem(id){
+  const i=db.items.find(x=>x.id==id);
+  const ex=purCart.find(p=>p.id==id);
+  if(ex) ex.qty++;
+  else purCart.push({id:i.id,name:i.name,qty:1,cost:i.cost});
+  renderPurchaseCart();
+}
+function renderPurchaseCart(){
+  const body=document.getElementById('pur-body');body.innerHTML='';
+  let total=0;
+  purCart.forEach((p,idx)=>{
+    const rowTotal=p.qty*p.cost;total+=rowTotal;
+    body.innerHTML+=`<tr>
+      <td>${p.name}</td>
+      <td><input type="number" value="${p.qty}" style="width:60px" oninput="purCart[${idx}].qty=parseFloat(this.value)||0;renderPurchaseCart()"></td>
+      <td class="text-right"><input type="number" value="${p.cost.toFixed(2)}" style="width:80px;text-align:right" oninput="purCart[${idx}].cost=parseFloat(this.value)||0;renderPurchaseCart()"></td>
+      <td class="text-right">${rowTotal.toFixed(2)}</td>
+      <td><i class="fa fa-times text-danger" style="cursor:pointer" onclick="purCart.splice(${idx},1);renderPurchaseCart()"></i></td>
+    </tr>`;
+  });
+  document.getElementById('pur-total').innerText=total.toFixed(2);
+}
+function savePurchase(){
+  if(!purCart.length){alert("No items in purchase");return;}
+  const supId=parseInt(val('pur-sup'))||0;
+  const date=val('pur-date');
+  let total=0;
+  purCart.forEach(p=>{
+    const item=db.items.find(i=>i.id==p.id);
+    item.stock+=p.qty;
+    item.cost=p.cost;
+    total+=p.qty*p.cost;
+  });
+  if(supId){
+    const s=db.suppliers.find(x=>x.id==supId);
+    s.bal+=total;
+  }
+  db.transactions.push({type:'purchase',date, supId, items:purCart, total});
+  purCart=[];renderPurchaseCart();saveDB();
+  alert("Purchase saved.");
+}
+
+/* LEDGERS */
+function saveContact(arr,px){
+  db[arr].push({id:Date.now(),name:val(px+'-name'),phone:val(px+'-phone'),bal:0});
+  saveDB();closeModal(px==='mc'?'m-cust':'m-sup');
+}
+function renderLedgers(){
+  const fc=val('search-cust').toLowerCase();
+  // Exclude Walk-in and show only customers with outstanding credit > 0
+  document.getElementById('led-cust').innerHTML=db.customers
+    .filter(c=>c.name.toLowerCase().includes(fc) && c.name.toLowerCase()!=='walk-in' && (c.bal||0) > 0)
+    .map(c=>`
+    <tr><td>${c.name}</td><td class="text-right">${(c.bal||0).toFixed(2)}</td><td><button class="btn btn-sm" onclick="payInit('cust',${c.id})">Rcv</button></td></tr>`).join('');
+  const fs=val('search-sup').toLowerCase();
+  document.getElementById('led-sup').innerHTML=db.suppliers.filter(s=>s.name.toLowerCase().includes(fs)).map(s=>`
+    <tr><td>${s.name}</td><td class="text-right">${s.bal.toFixed(2)}</td><td><button class="btn btn-sm" onclick="payInit('sup',${s.id})">Pay</button></td></tr>`).join('');
+  // populate the credit-customer dropdown (exclude walk-in, only bal>0)
+  const creditOpts = db.customers.filter(c=>c.name.toLowerCase()!=='walk-in' && (c.bal||0) > 0);
+  document.getElementById('led-credit-cust').innerHTML = `<option value="">-- Select --</option>` + creditOpts.map(c=>`<option value="${c.id}">${c.name} (${c.bal.toFixed(2)})</option>`).join('');
+}
+function payInit(type,id){
+  const p=type==='cust'?db.customers.find(c=>c.id==id):db.suppliers.find(s=>s.id==id);
+  document.getElementById('mp-type').value=type;
+  document.getElementById('mp-id').value=id;
+  document.getElementById('mp-name').innerText=p.name;
+  document.getElementById('mp-amt').value='';
+  modal('m-pay');
+}
+function processPayment(){
+  const type=val('mp-type'), id=parseInt(val('mp-id')), amt=num('mp-amt');
+  const p=type==='cust'?db.customers.find(c=>c.id==id):db.suppliers.find(s=>s.id==id);
+  if(!p){ alert('Party not found'); return; }
+  p.bal -= amt;
+  // record payment transaction
+  const date = val('mp-date') || new Date().toISOString().split('T')[0];
+  if(type === 'cust'){
+    db.transactions.push({type:'payment', date, party:'cust', partyId: id, amt});
+  } else {
+    db.transactions.push({type:'payment', date, party:'sup', partyId: id, amt});
+  }
+  const html=`<div class="print-header">${db.info.logo?`<img src="${db.info.logo}" style="height:50px">`:''}
+    <h2>${db.info.name}</h2><p>${db.info.addr.replace('\\n','<br>')}</p></div>
+    <div style="border:1px solid #000;padding:20px;text-align:center">
+      <h2>Amt: ${amt.toFixed(2)}</h2>
+      <p>Party: ${p.name}</p>
+      <p>Date: ${date}</p>
+      ${ type==='cust' ? `<p>Remaining Credit: ${(p.bal||0).toFixed(2)}</p>` : '' }
+    </div>`;
+  document.getElementById('print-zone').innerHTML=html;window.print();
+  saveDB();closeModal('m-pay');
+}
+
+/* CUSTOMER CREDIT REPORT generation */
+function calcCustomerBalanceUpTo(customerId, dateExclusive){
+  // dateExclusive: transactions strictly before this date are included
+  let bal = 0;
+  // credit sales increase balance
+  db.sales.filter(s => s.custId==customerId && s.date < dateExclusive && s.mode === 'Credit')
+    .forEach(s => bal += s.net);
+  // payments reduce balance (from transactions)
+  db.transactions.filter(t => t.type==='payment' && t.party==='cust' && t.partyId==customerId && t.date < dateExclusive)
+    .forEach(t => bal -= t.amt);
+  return bal;
+}
+function getCustomerTransactions(customerId, fromISO, toISO){
+  const sales = db.sales.filter(s => s.custId==customerId && s.date>=fromISO && s.date<=toISO)
+    .map(s => ({type:'sale', date: s.date, id: s.id, amt: s.net, items: s.items}));
+  const payments = db.transactions.filter(t => t.type==='payment' && t.party==='cust' && t.partyId==customerId && t.date>=fromISO && t.date<=toISO)
+    .map(t => ({type:'payment', date: t.date, amt: t.amt}));
+  const combined = sales.concat(payments).sort((a,b)=>a.date.localeCompare(b.date));
+  return combined;
+}
+function buildCustomerCreditReportHTML(customerId, fromISO, toISO){
+  const cust = db.customers.find(c=>c.id==customerId);
+  if(!cust) return '<html><body><p>Customer not found</p></body></html>';
+  const header = buildReportHeader();
+  const opening = calcCustomerBalanceUpTo(customerId, fromISO);
+  const txs = getCustomerTransactions(customerId, fromISO, toISO);
+  let html = `<html><head><title>Credit Report - ${cust.name}</title><style>body{font-family:Arial,sans-serif;color:#000} .print-header img{max-height:60px; display:block; margin:0 auto 6px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;padding:6px;text-align:left}</style></head><body>${header}<h3 style="text-align:center">Credit Report for ${cust.name}</h3><p style="text-align:center">${fromISO} to ${toISO}</p>`;
+  html += `<p>Opening Balance: ${opening.toFixed(2)}</p>`;
+  html += `<table class="print-table"><thead><tr><th>Date</th><th>Type</th><th>Details</th><th class="text-right">Amount</th><th class="text-right">Running Balance</th></tr></thead><tbody>`;
+  let running = opening;
+  txs.forEach(t => {
+    if(t.type === 'sale'){
+      // sale increases balance
+      running += t.amt;
+      const itemsList = t.items.map(it => `${it.name} x${it.qty}`).join(', ');
+      html += `<tr><td>${t.date}</td><td>Sale (Inv: ${t.id})</td><td>${itemsList}</td><td class="text-right">${t.amt.toFixed(2)}</td><td class="text-right">${running.toFixed(2)}</td></tr>`;
+    } else if(t.type === 'payment'){
+      running -= t.amt;
+      html += `<tr><td>${t.date}</td><td>Payment</td><td>Received from ${cust.name}</td><td class="text-right">${t.amt.toFixed(2)}</td><td class="text-right">${running.toFixed(2)}</td></tr>`;
+    }
+  });
+  html += `</tbody></table><h3 style="text-align:right">Closing Balance: ${running.toFixed(2)}</h3></body></html>`;
+  return html;
+}
+function printCustomerCreditReport(){
+  const custId = parseInt(val('led-credit-cust'));
+  if(!custId){ alert('Select a customer with outstanding credit.'); return; }
+  const d1 = val('led-rpt-start') || new Date().toISOString().split('T')[0];
+  const d2 = val('led-rpt-end') || new Date().toISOString().split('T')[0];
+  const html = buildCustomerCreditReportHTML(custId, d1, d2);
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+/* BANK / EXPENSE / SETTINGS */
+function saveBank(){ db.banks.push({name:val('mb-name'),acc:val('mb-acc'),bal:num('mb-bal')}); saveDB(); closeModal('m-bank'); }
+function saveExp(){ db.expenses.push({date:new Date().toISOString().split('T')[0],cat:val('me-cat'),desc:val('me-desc'),amt:num('me-amt')}); saveDB(); closeModal('m-exp'); }
+function saveSettings(){ db.info={name:val('set-name'),addr:val('set-addr'),logo:val('set-logo')}; saveDB(); alert('Saved'); }
+function hardReset(){ if(prompt("Pass")=='1234'){ localStorage.removeItem(DB_KEY); location.reload(); } }
+
+/* UPDATE UI */
+function updateDatalist(){ document.getElementById('dl-items').innerHTML=db.items.map(i=>`<option value="${i.code}">${i.name}</option><option value="${i.name}">`).join(''); }
+function updateUI(){
+  updateDatalist();renderInv();renderLedgers();filterPosList();filterPurchaseList();
+  const pop=(id,arr)=>document.getElementById(id).innerHTML=arr.map(x=>`<option value="${id.includes('cust')||id==='pur-sup'?x.id:x.name}">${x.name}</option>`).join('');
+  pop('pos-cust',db.customers);pop('pos-bank',db.banks);pop('pur-sup',db.suppliers);
+  document.getElementById('exp-body').innerHTML=db.expenses.map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.desc}</td><td class="text-right">${e.amt.toFixed(2)}</td></tr>`).join('');
+  document.getElementById('bank-body').innerHTML=db.banks.map(b=>`<tr><td>${b.name}</td><td>${b.acc}</td><td class="text-right">${b.bal.toFixed(2)}</td></tr>`).join('');
+  document.getElementById('set-name').value=db.info.name;
+  document.getElementById('set-addr').value=db.info.addr;
+  document.getElementById('set-logo').value=db.info.logo;
+  calcDash();updateBillIndexDisplay();
+}
+
+/* SHORTCUTS */
+document.addEventListener('keydown',e=>{ if(e.key==='F6')holdBill(); if(e.key==='F7')recallBill(); });
+</script>
+</body>
+</html>
